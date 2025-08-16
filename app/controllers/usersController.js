@@ -1,4 +1,5 @@
 const { reduce } = require('lodash')
+const { hashPassword } = require('../services/hashService')
 const UserModel = require('../models/UserModel')
 const usersList = async (req, res, next) => {
     
@@ -9,12 +10,27 @@ const usersList = async (req, res, next) => {
         return {[current]:1,...total}
     },{})
 }
-    const users = await UserModel.find({}, projection)
+
+//pagination
+const perPage = 1
+const page = req.query.page || 1
+const offset =(page -1) * perPage
+const usersCount = await UserModel.countDocuments()
+//ceil b samt bala rond mikone adad ro
+const totalPages = Math.ceil(usersCount / perPage)
+
+const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     res.send({
         success: true,
         message: 'لیست کاربران با موفقیت تولید شد',
         data:{
             users
+        },
+        meta:{
+            page: parseInt(page),
+            pages: totalPages,
+            next: hasNextPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/users?=${parseInt(page) + 1}`:null,
+            prev: hasPrevPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/users?=${page - 1}`:null,
         }
     })
 }
@@ -22,21 +38,24 @@ const usersList = async (req, res, next) => {
 const addUser = async (req, res, next) => {
 
     try {
-    const {first_name, last_name, mobile, email} = req.body
+    const {first_name, last_name, mobile, email, password} = req.body
     
-    if(first_name == undefined || last_name == undefined || first_name == "" || last_name == "")
+    if(!first_name || !last_name || !password)
     {
         return res.status(422).send({
             error: true,
             message:'اطلاعات ارسالی برای ایجاد کاربر معتبر نمی باشد'
         })
     }
+
+    const hashedPassword = await hashPassword(password)
     
     const newUser = new UserModel({
         first_name,
         last_name,
         mobile,
-        email
+        email,
+        password: hashedPassword
     })
 
     await newUser.save()
@@ -129,6 +148,13 @@ const updateUser = async (req, res, next) => {
     } catch (error) {
         next(error)
     }
+}
+
+const hasNextPage = (page, totalPages) => {
+    return page < totalPages;
+}
+const hasPrevPage = (page) => {
+    return page > 1;
 }
 
 module.exports = {
