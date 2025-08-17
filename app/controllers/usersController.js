@@ -1,4 +1,6 @@
 const { reduce } = require('lodash')
+const mongoose = require('mongoose')
+const { validationResult } = require('express-validator');
 const { hashPassword } = require('../services/hashService')
 const UserModel = require('../models/UserModel')
 const usersList = async (req, res, next) => {
@@ -35,19 +37,20 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     })
 }
 
-const addUser = async (req, res, next) => {
-
-    try {
-    const {first_name, last_name, mobile, email, password} = req.body
-    
-    if(!first_name || !last_name || !password)
-    {
-        return res.status(422).send({
-            error: true,
-            message:'اطلاعات ارسالی برای ایجاد کاربر معتبر نمی باشد'
+    const addUser = async (req, res, next) => {
+        try {
+    // error Validation
+    const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            message: 'اعتبارسنجی ناموفق بود',
+            errors: errors.array() 
         })
     }
 
+    const { first_name, last_name, mobile, email, password } = req.body;
+    
     const hashedPassword = await hashPassword(password)
     
     const newUser = new UserModel({
@@ -104,50 +107,71 @@ const getUser = async (req, res, next) => {
 }
 
 const removeUser = async (req, res, next) => {
-    try {
-        const {id} = req.params
-        if(!id){
-            return res.status(400).send({
-                error : true,
-                message: 'کاربری با این مشخصات یافت نشد'
-            })
-        }
-    await UserModel.deleteOne({_id:id})
-    res.send({
+  try {
+    const { id } = req.params
 
-        success: true,
-        message: 'کاربر با موفقیت حذف شد'
-
-    })
-        
-    } catch (error) {
-        next(error)
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'شناسه کاربر معتبر نیست'
+      })
     }
+
+    const result = await UserModel.deleteOne({ _id: id })
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'کاربری با این شناسه یافت نشد'
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'کاربر با موفقیت حذف شد'
+    })
+  } catch (error) {
+    console.error('Error in removeUser:', error.message)
+    next(error)
+  }
 }
 
 const updateUser = async (req, res, next) => {
-    try {
-        const {id} = req.params
-        if(!id){
-            return res.status(400).send({
-                error : true,
-                message: 'کاربری با این مشخصات یافت نشد'
-            })
-        }
-    const {n, nmodified} = await UserModel.updateOne({_id:id}, {...req.body})
-    if(n==0 || nmodified===0)
-        throw new Error('عملیات به روز رسانی با خطا مواجه شد')
-    
-    res.send({
+  try {
+    const { id } = req.params
 
-        success: true,
-        message: 'کاربر با موفقیت آپدیت شد'
-
-    })
-        
-    } catch (error) {
-        next(error)
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'شناسه کاربر معتبر نیست'
+      })
     }
+
+    const result = await UserModel.updateOne({ _id: id }, { ...req.body })
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'کاربری با این شناسه یافت نشد'
+      })
+    }
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'اطلاعات جدید با اطلاعات قبلی یکسان است، هیچ تغییری اعمال نشد'
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'کاربر با موفقیت آپدیت شد'
+    })
+  } catch (error) {
+    console.error('Error in updateUser:', error.message)
+    next(error)
+  }
 }
 
 const hasNextPage = (page, totalPages) => {

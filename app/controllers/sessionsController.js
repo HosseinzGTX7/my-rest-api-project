@@ -25,11 +25,15 @@ exports.newSession = async (req, res, next) => {
 }
 
         const token = TokenService.sign({ id: user._id })
+        const decoded = TokenService.decode(token)
+        const expiresAt = new Date(decoded.exp * 1000) //قابل خواندن کردن تاریخ
 
         res.send({
             status: 'success',
             code: 200,
-            token
+            token,
+            expiresAt: expiresAt.toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' })
+
         })
 
     } catch (error) {
