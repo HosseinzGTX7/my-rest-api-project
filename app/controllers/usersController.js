@@ -36,7 +36,7 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
         meta:{
             page: parseInt(page),
             pages: totalPages,
-            next: hasNextPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/admin/userlist?=${parseInt(page) + 1}`:null,
+            next: hasNextPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/admin/userlist?fields=page=${parseInt(page) + 1}`:null,
             prev: hasPrevPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/admin/userlist?fields=page=${page - 1}`:null,
         }
     })
