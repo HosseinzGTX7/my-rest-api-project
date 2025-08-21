@@ -5,7 +5,7 @@ module.exports = (app) => {
             code: 'Exception',
             status,
             en_message: error.message,
-            fa_message: 'خطایی رخ داده است'
+            fa_message: 'خطایی در سرور رخ داده است'
         })
     })
 }

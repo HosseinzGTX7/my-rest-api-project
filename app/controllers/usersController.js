@@ -1,10 +1,9 @@
-const { reduce } = require('lodash')
 const mongoose = require('mongoose')
 const { validationResult } = require('express-validator');
 const { hashPassword } = require('../services/hashService')
 const UserModel = require('../models/UserModel')
-const usersList = async (req, res, next) => {
-    
+
+const usersList = async (req, res) => {
     let projection = {}
 
     if (Object.prototype.hasOwnProperty.call(req.query, 'fields')) {
@@ -14,12 +13,18 @@ const usersList = async (req, res, next) => {
 }
 
 //pagination
-const perPage = 1
+const perPage = 10
 const page = req.query.page || 1
 const offset =(page -1) * perPage
 const usersCount = await UserModel.countDocuments()
 //ceil b samt bala rond mikone adad ro
 const totalPages = Math.ceil(usersCount / perPage)
+    if (page > totalPages || page < 1) {
+      return res.status(404).json({
+      success: false,
+      message: 'این صفحه وجود ندارد'
+    })
+}
 
 const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     res.send({
@@ -31,8 +36,8 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
         meta:{
             page: parseInt(page),
             pages: totalPages,
-            next: hasNextPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/users?=${parseInt(page) + 1}`:null,
-            prev: hasPrevPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/users?=${page - 1}`:null,
+            next: hasNextPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/admin/userlist?=${parseInt(page) + 1}`:null,
+            prev: hasPrevPage(page, totalPages) ? `${process.env.APP_URL}/api/v1/admin/userlist?fields=page=${page - 1}`:null,
         }
     })
 }
@@ -62,6 +67,7 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     })
 
     await newUser.save()
+    
     res.status(201).send({
         success:true,
         message:'کاربر جدید با موفقیت ایجاد شد',
@@ -77,7 +83,7 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
 const getUser = async (req, res, next) => {
 
     try {
-        const {id} = req.params
+        const { id } = req.body
         if(!id){
             return res.status(400).send({
                 error : true,
@@ -108,7 +114,7 @@ const getUser = async (req, res, next) => {
 
 const removeUser = async (req, res, next) => {
   try {
-    const { id } = req.params
+    const { id } = req.body
 
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -139,7 +145,7 @@ const removeUser = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
   try {
-    const { id } = req.params
+    const { id } = req.body
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -175,10 +181,10 @@ const updateUser = async (req, res, next) => {
 }
 
 const hasNextPage = (page, totalPages) => {
-    return page < totalPages;
+    return page < totalPages
 }
 const hasPrevPage = (page) => {
-    return page > 1;
+    return page > 1
 }
 
 module.exports = {

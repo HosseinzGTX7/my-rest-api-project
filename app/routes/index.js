@@ -3,6 +3,6 @@ const sessionRouter = require('./sessions')
 
 module.exports = (app) => {
 
-    app.use('/api/v1/users', userRouter)
-    app.use('/api/v1/session', sessionRouter)
+    app.use('/api/v1', userRouter)
+    app.use('/api/v1/login', sessionRouter)
 }

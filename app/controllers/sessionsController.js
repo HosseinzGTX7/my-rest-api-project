@@ -24,7 +24,7 @@ exports.newSession = async (req, res, next) => {
          })
 }
 
-        const token = TokenService.sign({ id: user._id })
+        const token = TokenService.sign({ id: user.id, role: user.role })
         const decoded = TokenService.decode(token)
         const expiresAt = new Date(decoded.exp * 1000) //قابل خواندن کردن تاریخ
 
@@ -32,8 +32,16 @@ exports.newSession = async (req, res, next) => {
             status: 'success',
             code: 200,
             token,
-            expiresAt: expiresAt.toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' })
-
+            expiresAt: expiresAt.toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }),
+            user: {
+                id: user._id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                createdAt: user.createdAt,
+                updateAt: user.updateAt,
+                role: user.role
+            }
         })
 
     } catch (error) {
