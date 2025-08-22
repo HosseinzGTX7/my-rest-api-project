@@ -17,19 +17,20 @@ const perPage = 10
 const page = req.query.page || 1
 const offset =(page -1) * perPage
 const usersCount = await UserModel.countDocuments()
+
 //ceil b samt bala rond mikone adad ro
 const totalPages = Math.ceil(usersCount / perPage)
     if (page > totalPages || page < 1) {
       return res.status(404).json({
       success: false,
-      message: 'این صفحه وجود ندارد'
+      message: 'This Page Does Not Exist'
     })
 }
 
 const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     res.send({
         success: true,
-        message: 'لیست کاربران با موفقیت تولید شد',
+        message: 'User List Successfully Generated',
         data:{
             users
         },
@@ -49,7 +50,7 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
         if (!errors.isEmpty()) {
         return res.status(400).json({
             success: false,
-            message: 'اعتبارسنجی ناموفق بود',
+            message: 'Validation Failed',
             errors: errors.array() 
         })
     }
@@ -70,7 +71,7 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     
     res.status(201).send({
         success:true,
-        message:'کاربر جدید با موفقیت ایجاد شد',
+        message:'User Created Successfully',
         newUser
     })
 
@@ -87,7 +88,7 @@ const getUser = async (req, res, next) => {
         if(!id){
             return res.status(400).send({
                 error : true,
-                message: 'کاربری با این مشخصات یافت نشد'
+                message: 'User Not Found'
             })
         }
 
@@ -95,7 +96,7 @@ const getUser = async (req, res, next) => {
          if(!user){
             return res.status(400).send({
                 error : true,
-                message: 'کاربری با این مشخصات یافت نشد'
+                message: 'User Not Found'
             })
         }
         return res.send({
@@ -120,7 +121,7 @@ const removeUser = async (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'شناسه کاربر معتبر نیست'
+        message: 'User Id Invalid'
       })
     }
 
@@ -129,13 +130,13 @@ const removeUser = async (req, res, next) => {
     if (result.deletedCount === 0) {
       return res.status(404).json({
         success: false,
-        message: 'کاربری با این شناسه یافت نشد'
+        message: 'User Not Found'
       })
     }
 
     res.json({
       success: true,
-      message: 'کاربر با موفقیت حذف شد'
+      message: 'User Successfully Deleted'
     })
   } catch (error) {
     console.error('Error in removeUser:', error.message)
@@ -150,7 +151,7 @@ const updateUser = async (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'شناسه کاربر معتبر نیست'
+        message: 'User Id Invalid'
       })
     }
 
@@ -159,20 +160,20 @@ const updateUser = async (req, res, next) => {
     if (result.matchedCount === 0) {
       return res.status(404).json({
         success: false,
-        message: 'کاربری با این شناسه یافت نشد'
+        message: 'User Not Found'
       })
     }
 
     if (result.modifiedCount === 0) {
       return res.status(400).json({
         success: false,
-        message: 'اطلاعات جدید با اطلاعات قبلی یکسان است، هیچ تغییری اعمال نشد'
+        message: 'Same Information, No Change'
       })
     }
 
     res.json({
       success: true,
-      message: 'کاربر با موفقیت آپدیت شد'
+      message: 'User Successfully Updated'
     })
   } catch (error) {
     console.error('Error in updateUser:', error.message)

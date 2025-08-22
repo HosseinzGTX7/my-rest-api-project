@@ -11,7 +11,7 @@ exports.newSession = async (req, res, next) => {
                  return res.status(404).send({
                  status: 'error',
                  code: 404,
-                 msg: 'کاربری با این ایمیل یافت نشد'
+                 msg: 'User Not Found'
         })
 }
 
@@ -20,7 +20,7 @@ exports.newSession = async (req, res, next) => {
                 return res.status(401).send({
                 status: 'error',
                 code: 401,
-                msg: 'رمز عبور اشتباه است'
+                msg: 'Password Incorrect'
          })
 }
 
