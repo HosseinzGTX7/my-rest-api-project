@@ -1,9 +1,9 @@
 module.exports = (app) => {
     app.use((req, res) => {
         res.status(404).send({
-            code: 'Not Found',
-            status: 404,
-            messsage: 'requested resource could be not found...'
+            Code: 'Not Found',
+            Status: 404,
+            Messsage: 'requested resource could be not found...'
 
         })
     })

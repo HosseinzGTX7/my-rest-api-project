@@ -8,19 +8,19 @@ exports.newSession = async (req, res, next) => {
 
         const user = await UserModel.findOne({ email })
             if (!user) {
-                 return res.status(404).send({
-                 status: 'error',
-                 code: 404,
-                 msg: 'User Not Found'
+                 return res.status(200).send({
+                 Success: false,
+                 Status: 404,
+                 Message: 'User Not Found'
         })
 }
 
         const isMatch = await comparePassword(password, user.password)
             if (!isMatch) {
-                return res.status(401).send({
-                status: 'error',
-                code: 401,
-                msg: 'Password Incorrect'
+                return res.status(200).send({
+                Success: false,
+                Status: 401,
+                Message: 'Password Incorrect'
          })
 }
 
@@ -28,9 +28,9 @@ exports.newSession = async (req, res, next) => {
         const decoded = TokenService.decode(token)
         const expiresAt = new Date(decoded.exp * 1000) //قابل خواندن کردن تاریخ
 
-        res.send({
-            status: 'success',
-            code: 200,
+        return res.status(200).send({
+            Success: true,
+            Status: 200,
             token,
             expiresAt: expiresAt.toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }),
             user: {

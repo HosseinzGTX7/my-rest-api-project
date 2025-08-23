@@ -48,14 +48,15 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     // error Validation
     const errors = validationResult(req);
         if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            message: 'Validation Failed',
-            errors: errors.array() 
+        return res.status(200).json({
+            Success: false,
+            Message: 'Input Incomplete',
+            Status: 400,
+            Errors: errors.array() 
         })
     }
 
-    const { first_name, last_name, mobile, email, password } = req.body;
+    const { first_name, last_name, mobile, email, password } = req.body
     
     const hashedPassword = await hashPassword(password)
     
@@ -72,6 +73,7 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     res.status(201).send({
         success:true,
         message:'User Created Successfully',
+        Status: 201,
         newUser
     })
 
@@ -86,21 +88,24 @@ const getUser = async (req, res, next) => {
     try {
         const { id } = req.body
         if(!id){
-            return res.status(400).send({
-                error : true,
-                message: 'User Not Found'
+            return res.status(200).send({
+                Success: false,
+                Message: 'Input Invalid',
+                Status: 400
             })
         }
 
         const user = await UserModel.findOne({_id:id})
          if(!user){
-            return res.status(400).send({
-                error : true,
-                message: 'User Not Found'
+            return res.status(200).send({
+                Success: false,
+                Message: 'User Not Found',
+                Status: 404
             })
         }
         return res.send({
-                success: true,
+                Success: true,
+                Status: 200,
                 data:{
                     user
                 }
@@ -116,27 +121,28 @@ const getUser = async (req, res, next) => {
 const removeUser = async (req, res, next) => {
   try {
     const { id } = req.body
-
-    
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'User Id Invalid'
+      return res.status(200).json({
+        Success: false,
+        Message: 'User Id Invalid',
+        Status: 400
       })
     }
 
     const result = await UserModel.deleteOne({ _id: id })
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'User Not Found'
+      return res.status(200).json({
+        Success: false,
+        Message: 'User Not Found',
+        Status: 404
       })
     }
 
-    res.json({
-      success: true,
-      message: 'User Successfully Deleted'
+    return res.status(200).json({
+      Success: true,
+      Message: 'User Successfully Deleted',
+      Status: 200
     })
   } catch (error) {
     console.error('Error in removeUser:', error.message)
@@ -149,31 +155,35 @@ const updateUser = async (req, res, next) => {
     const { id } = req.body
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'User Id Invalid'
+      return res.status(200).json({
+        Success: false,
+        Message: 'User Id Invalid',
+        Status: 400
       })
     }
 
     const result = await UserModel.updateOne({ _id: id }, { ...req.body })
 
     if (result.matchedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'User Not Found'
+      return res.status(200).json({
+        Success: false,
+        Message: 'User Not Found',
+        Status: 404
       })
     }
 
     if (result.modifiedCount === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Same Information, No Change'
+      return res.status(200).json({
+        Success: false,
+        Message: 'Same Information, No Change',
+        Status: 409
       })
     }
 
-    res.json({
-      success: true,
-      message: 'User Successfully Updated'
+    return res.status(200).json({
+      Success: true,
+      Message: 'User Successfully Updated',
+      Status: 200
     })
   } catch (error) {
     console.error('Error in updateUser:', error.message)
