@@ -3,8 +3,7 @@ const app = express()
 require('./boot')
 require('./middlewares')(app)
 require('./routes')(app)
-require('./middlewares/exception')(app)
-require('./middlewares/404')(app)
+require('./middlewares/errorHandler')(app)
 
 module.exports = (port) => {
     app.listen(port, () => {

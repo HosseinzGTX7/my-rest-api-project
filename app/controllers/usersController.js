@@ -43,8 +43,8 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     })
 }
 
-    const addUser = async (req, res, next) => {
-        try {
+  const addUser = async (req, res, next) => {
+    try {
     // error Validation
     const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -56,11 +56,11 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
         })
     }
 
-    const { first_name, last_name, mobile, email, password } = req.body
+  const { first_name, last_name, mobile, email, password } = req.body
     
-    const hashedPassword = await hashPassword(password)
+  const hashedPassword = await hashPassword(password)
     
-    const newUser = new UserModel({
+  const newUser = new UserModel({
         first_name,
         last_name,
         mobile,
