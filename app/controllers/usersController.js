@@ -57,6 +57,35 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     }
 
   const { first_name, last_name, mobile, email, password } = req.body
+
+  // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(422).json({
+        Success: false,
+        Message: 'Email Format Invalid',
+        Status: 422
+      })
+    }
+
+    // Password length check
+    if (!password || password.length < 8) {
+      return res.status(422).json({
+        Success: false,
+        Message: 'Password Must Be At Least 8 Characters',
+        Status: 422
+      })
+    }
+
+    // Duplicate email check
+  const existingUser = await UserModel.findOne({ email });
+  if (existingUser) {
+    return res.status(409).json({
+      Success: false,
+      Message: 'Email Already Exists',
+      Status: 409
+    })
+  }
     
   const hashedPassword = await hashPassword(password)
     
