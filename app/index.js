@@ -7,8 +7,9 @@ require('./routes')(app)
 
 app.use((req, res) => {
   res.status(404).json({
-    status: 'fail',
-    message: `Route ${req.originalUrl} not found on this server! (404)`
+    Success: 'false',
+    Status: '404',
+    Message: `Route ${req.originalUrl} not found on this server!`
   })
 })
 

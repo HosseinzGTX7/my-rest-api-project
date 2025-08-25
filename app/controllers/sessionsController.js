@@ -1,6 +1,7 @@
 const UserModel = require('../models/UserModel')
 const { comparePassword } = require('../services/hashService')
 const TokenService = require('../services/TokenService')
+const AppError = require('../utils/appError')
 
 exports.newSession = async (req, res, next) => {
     try {
@@ -8,21 +9,13 @@ exports.newSession = async (req, res, next) => {
 
         const user = await UserModel.findOne({ email })
             if (!user) {
-                 return res.status(200).send({
-                 Success: false,
-                 Status: 404,
-                 Message: 'User Not Found'
-        })
-}
+                return next(new AppError('User Not Found', 404))
+        }
 
         const isMatch = await comparePassword(password, user.password)
             if (!isMatch) {
-                return res.status(200).send({
-                Success: false,
-                Status: 401,
-                Message: 'Password Incorrect'
-         })
-}
+                return next(new AppError('Password Incorrect', 401))
+        }
 
         const token = TokenService.sign({ id: user.id, role: user.role })
         const decoded = TokenService.decode(token)

@@ -1,5 +1,6 @@
+const AppError = require('../utils/appError')
 const mongoose = require('mongoose')
-const { validationResult } = require('express-validator');
+const { validationResult } = require('express-validator')
 const { hashPassword } = require('../services/hashService')
 const UserModel = require('../models/UserModel')
 
@@ -22,15 +23,15 @@ const usersCount = await UserModel.countDocuments()
 const totalPages = Math.ceil(usersCount / perPage)
     if (page > totalPages || page < 1) {
       return res.status(404).json({
-      success: false,
-      message: 'This Page Does Not Exist'
+      Success: false,
+      Message: 'This Page Does Not Exist'
     })
 }
 
 const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     res.send({
-        success: true,
-        message: 'User List Successfully Generated',
+        Success: true,
+        Message: 'User List Successfully Generated',
         data:{
             users
         },
@@ -43,129 +44,72 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
     })
 }
 
-  const addUser = async (req, res, next) => {
-    try {
+const addUser = async (req, res, next) => {
+  try {
     // error Validation
-    const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-        return res.status(200).json({
-            Success: false,
-            Message: 'Input Incomplete',
-            Status: 400,
-            Errors: errors.array() 
-        })
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return next(new AppError(errors.array()[0].msg || 'Input Incomplete', 400))
     }
 
-  const { first_name, last_name, mobile, email, password } = req.body
+    const { first_name, last_name, mobile, email, password } = req.body
 
-  // Email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(422).json({
-        Success: false,
-        Message: 'Email Format Invalid',
-        Status: 422
-      })
-    }
+    const hashedPassword = await hashPassword(password)
 
-    // Password length check
-    if (!password || password.length < 8) {
-      return res.status(422).json({
-        Success: false,
-        Message: 'Password Must Be At Least 8 Characters',
-        Status: 422
-      })
-    }
-
-    // Duplicate email check
-  const existingUser = await UserModel.findOne({ email });
-  if (existingUser) {
-    return res.status(409).json({
-      Success: false,
-      Message: 'Email Already Exists',
-      Status: 409
-    })
-  }
-    
-  const hashedPassword = await hashPassword(password)
-    
-  const newUser = new UserModel({
-        first_name,
-        last_name,
-        mobile,
-        email,
-        password: hashedPassword
+    const newUser = new UserModel({
+      first_name,
+      last_name,
+      mobile,
+      email,
+      password: hashedPassword
     })
 
     await newUser.save()
-    
-    res.status(201).send({
-        success:true,
-        message:'User Created Successfully',
-        Status: 201,
-        newUser
-    })
 
-    } catch (error) {
+    res.status(201).json({
+      Status: 'success',
+      Message: 'User created successfully',
+      data: newUser
+    });
 
-        next(error)
-    }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const getUser = async (req, res, next) => {
-
-    try {
-        const { id } = req.body
-        if(!id){
-            return res.status(200).send({
-                Success: false,
-                Message: 'Input Invalid',
-                Status: 400
-            })
-        }
-
-        const user = await UserModel.findOne({_id:id})
-         if(!user){
-            return res.status(200).send({
-                Success: false,
-                Message: 'User Not Found',
-                Status: 404
-            })
-        }
-        return res.send({
-                Success: true,
-                Status: 200,
-                data:{
-                    user
-                }
-            })
-
-    } catch (error) {
-
-        next(error)
+  try {
+    const { id } = req.body
+    if (!id) {
+      return next(new AppError('Input Invalid', 400))
     }
 
+    const user = await UserModel.findOne({ _id: id })
+    if (!user) {
+      return next(new AppError('User Not Found', 404))
+    }
+
+    return res.status(200).json({
+      Success: true,
+      Status: 200,
+      data: { user }
+    })
+
+  } catch (error) {
+    next(error)
+  }
 }
 
 const removeUser = async (req, res, next) => {
   try {
-    const { id } = req.body
+    const { id } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(200).json({
-        Success: false,
-        Message: 'User Id Invalid',
-        Status: 400
-      })
+      return next(new AppError('User Id Invalid', 400))
     }
 
     const result = await UserModel.deleteOne({ _id: id })
-
     if (result.deletedCount === 0) {
-      return res.status(200).json({
-        Success: false,
-        Message: 'User Not Found',
-        Status: 404
-      })
+      return next(new AppError('User Not Found', 404))
     }
 
     return res.status(200).json({
@@ -173,6 +117,7 @@ const removeUser = async (req, res, next) => {
       Message: 'User Successfully Deleted',
       Status: 200
     })
+
   } catch (error) {
     console.error('Error in removeUser:', error.message)
     next(error)
@@ -181,39 +126,26 @@ const removeUser = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
   try {
-    const { id } = req.body
-
+    const { id } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(200).json({
-        Success: false,
-        Message: 'User Id Invalid',
-        Status: 400
-      })
+      return next(new AppError('User Id Invalid', 400))
     }
 
     const result = await UserModel.updateOne({ _id: id }, { ...req.body })
-
     if (result.matchedCount === 0) {
-      return res.status(200).json({
-        Success: false,
-        Message: 'User Not Found',
-        Status: 404
-      })
+      return next(new AppError('User Not Found', 404))
     }
 
     if (result.modifiedCount === 0) {
-      return res.status(200).json({
-        Success: false,
-        Message: 'Same Information, No Change',
-        Status: 409
-      })
+      return next(new AppError('Same Information, No Change', 409))
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       Success: true,
       Message: 'User Successfully Updated',
       Status: 200
     })
+
   } catch (error) {
     console.error('Error in updateUser:', error.message)
     next(error)
