@@ -1,22 +1,19 @@
-module.exports = (app) => {
-    app.use((error, req, res, next) => { 
-        const status = error.status || 500
-        res.send({
-            Code: 'Exception',
-            status,
-            en_message: error.message,
-            fa_message: 'خطایی در سرور رخ داده است'
-        })
+//khata haye control shode
+const errorHandler = (err, req, res, next) => {
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      Status: err.statusCode,    
+      Message: err.message
     })
+  }
+//khata haye nashenakhte ya bug
+  console.error('ERROR', err)
+  res.status(500).json({
+    success: false,
+    statusCode: 500,
+    status: 'error',
+    message: 'Something went very wrong!'
+  })
 }
 
-module.exports = (app) => {
-    app.use((req, res) => {
-        res.status(404).send({
-            Code: 'Not Found',
-            Status: 404,
-            Messsage: 'requested resource could be not found...'
-
-        })
-    })
-}
+module.exports = errorHandler
