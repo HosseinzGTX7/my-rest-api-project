@@ -2,8 +2,8 @@ const Joi = require('joi')
 const AppError = require('../utils/appError')
 
 const userSchema = Joi.object({
-  first_name: Joi.string().required(),
-  last_name: Joi.string().required(),
+  first_name: Joi.string().min(2).required(),
+  last_name: Joi.string().min(2).required(),
   mobile: Joi.string().pattern(/^09\d{9}$/).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required()
@@ -14,14 +14,14 @@ function validateUser(req, res, next) {
   if (error) {
     const detail = error.details[0]
     let message = 'Invalid input'
-    let statusCode = 422
+    let statusCode = 400
 
     switch (detail.context.key) {
       case 'first_name':
-        message = 'First name is required'
+        message = detail.type === 'string.min' ? 'first name too short (min 2 char)' : 'First name is required'
         break
       case 'last_name':
-        message = 'Last name is required'
+        message = detail.type === 'string.min' ? 'last name too short (min 2 char)' : 'Last name is required'
         break
       case 'mobile':
         message = detail.type === 'string.pattern.base' ? 'Phone invalid' : 'Phone is required'
@@ -33,6 +33,7 @@ function validateUser(req, res, next) {
         break
       case 'password':
         message = detail.type === 'string.min' ? 'Password too short (min 8 char)' : 'Password is required'
+        statusCode = detail.type === 'string.min' ? 400 : 422
         break
     }
 
