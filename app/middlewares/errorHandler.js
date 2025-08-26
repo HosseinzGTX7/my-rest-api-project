@@ -1,7 +1,7 @@
 //khata haye control shode
 const errorHandler = (err, req, res, next) => {
   if (err.isOperational) {
-    return res.status(err.statusCode).json({
+    return res.status(200).json({
       Status: err.statusCode,    
       Message: err.message
     })

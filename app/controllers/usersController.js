@@ -1,6 +1,5 @@
 const AppError = require('../utils/appError')
 const mongoose = require('mongoose')
-const { validationResult } = require('express-validator')
 const { hashPassword } = require('../services/hashService')
 const UserModel = require('../models/UserModel')
 
@@ -45,13 +44,8 @@ const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
 }
 
 const addUser = async (req, res, next) => {
+  //ghable rout to middleware validation check mishe
   try {
-    // error Validation
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-      return next(new AppError(errors.array()[0].msg || 'Input Incomplete', 400))
-    }
-
     const { first_name, last_name, mobile, email, password } = req.body
 
     const hashedPassword = await hashPassword(password)
