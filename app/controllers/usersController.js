@@ -54,12 +54,12 @@ const addUser = async (req, res, next) => {
 
     const existingMobile = await UserModel.findOne({ mobile })
     if (existingMobile) {
-      return next(new AppError('Mobile number already exists', 409))
+      return next(new AppError('Mobile number already exists', 403))
     }
     
     const existingEmail = await UserModel.findOne({ email })
     if (existingEmail) {
-      return next(new AppError('Email already exists', 409))
+      return next(new AppError('Email already exists', 405))
     }
 
     const hashedPassword = await hashPassword(password)

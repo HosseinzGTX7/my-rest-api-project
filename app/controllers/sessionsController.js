@@ -9,12 +9,12 @@ exports.newSession = async (req, res, next) => {
 
         const user = await UserModel.findOne({ email })
             if (!user) {
-                return next(new AppError('User Not Found', 404))
+                return next(new AppError('User Not Found', 403))
         }
 
         const isMatch = await comparePassword(password, user.password)
             if (!isMatch) {
-                return next(new AppError('Password Incorrect', 401))
+                return next(new AppError('Password Incorrect', 404))
         }
 
         const token = TokenService.sign({ id: user.id, role: user.role })
