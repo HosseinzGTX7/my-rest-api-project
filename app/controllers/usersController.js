@@ -48,6 +48,10 @@ const addUser = async (req, res, next) => {
   try {
     const { first_name, last_name, mobile, email, password } = req.body
 
+    if (!first_name || !last_name || !mobile || !email || !password) {
+      return next(new AppError('All fields are required', 400));
+    }
+
     const existingMobile = await UserModel.findOne({ mobile })
     if (existingMobile) {
       return next(new AppError('Mobile number already exists', 409))

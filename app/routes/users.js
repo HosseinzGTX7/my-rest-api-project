@@ -4,7 +4,11 @@ const validateUser = require('../middlewares/Validation')
 const usersController = require('../controllers/usersController')
 const auth = require('../middlewares/auth')
 
-router.post('/signup', validateUser, usersController.addUser)
+//For Send form-data
+const multer = require('multer')
+const upload = multer()
+
+router.post('/signup', upload.none(), validateUser, usersController.addUser)
 router.get('/admin/userlist', auth.authorize(['admin']),usersController.usersList)
 router.get('/admin/userdetails', auth.authorize(['admin']), usersController.getUser)
 router.delete('/admin/userremove', auth.authorize(['admin']),usersController.removeUser)
