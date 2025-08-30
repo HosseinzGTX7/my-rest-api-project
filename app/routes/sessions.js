@@ -9,4 +9,5 @@ const upload = multer()
 const validateLogin = require('../middlewares/ValidateLogin')
 
 router.post('/new', upload.none(), validateLogin, Controller.newSession)
+
 module.exports = router
