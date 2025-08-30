@@ -1,8 +1,12 @@
 const express = require('express')
 const app = express()
+const cookieParser = require('cookie-parser')
 
 require('./boot')
 require('./middlewares')(app)
+
+app.use(cookieParser())
+
 require('./routes')(app)
 
 app.use((req, res) => {
