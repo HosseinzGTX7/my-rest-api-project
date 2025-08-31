@@ -37,18 +37,16 @@ function verifyTokenFromCookie(req) {
   }
 }
 
-// کوکی امن ست کردن
 function setResetCookie(res, token, maxAgeMs) {
   res.cookie('rp_token', token, {
     httpOnly: true,
     secure: IS_PROD,
     sameSite: 'lax',
     maxAge: maxAgeMs,
-    path: '/api/v1/password' 
+    path: '/' 
   })
 }
 
-// پاک کردن کوکی
 function clearResetCookie(res) {
   res.clearCookie('rp_token', { path: '/' })
 }
@@ -62,8 +60,14 @@ exports.sendVerifyCode = async (req, res) => {
 
     const user = await User.findOne({ mobile })
     if (!user) return res.status(404).json({ message: 'کاربر پیدا نشد' })
-
-    // اگر قبلاً کد فعال دارد، پاک کنیم (تمیزکاری)
+    
+    //Resend Code
+    const lastReset = await ResetPassword.findOne({ userId: user._id }).sort({ createdAt: -1 })
+    if (lastReset && (Date.now() - lastReset.createdAt.getTime()) < 2 * 60 * 1000) {
+      return res.status(400).json({ message: 'لطفاً قبل از درخواست مجدد، ۲ دقیقه صبر کنید' })
+    }
+   
+    //Clean Pervius Code
     await ResetPassword.deleteMany({ userId: user._id })
 
     const code = generateCode()
@@ -104,7 +108,6 @@ exports.checkVerifyCode = async (req, res) => {
     const resetDoc = await ResetPassword.findOne({
       userId,
       jti,
-      resetCodeHash: hashCode(resetCode),
       expiresAt: { $gt: new Date() }
     })
 
@@ -112,12 +115,24 @@ exports.checkVerifyCode = async (req, res) => {
       return res.status(400).json({ message: 'کد نامعتبر یا منقضی شده' })
     }
 
+    if (resetDoc.attempts >= 5) {
+      await resetDoc.deleteOne() //Delete Record After an unsuccessful attempt
+      clearResetCookie(res) //Delete Cookie After an unsuccessful attempt
+      return res.status(429).json({ message: 'تعداد تلاش‌ها بیش از حد مجاز است. لطفاً دوباره درخواست کد دهید' })
+    }
+    const isValidCode = resetDoc.resetCodeHash === hashCode(resetCode)
+    if (!isValidCode) {
+      resetDoc.attempts += 1
+      await resetDoc.save()
+      return res.status(400).json({ message: 'کد نامعتبر است' })
+    }
+
     if (resetDoc.isVerify) {
-      // قبلاً تایید شده
       return res.json({ message: 'کد قبلاً تایید شده است' })
     }
 
     resetDoc.isVerify = true
+    resetDoc.attempts = 0 //Reset attempts next success verify
     await resetDoc.save()
 
     res.json({ message: 'کد تایید شد' })
@@ -135,6 +150,9 @@ exports.resetPassword = async (req, res) => {
 
     if (newPassword !== confirmPassword)
       return res.status(400).json({ message: 'رمز عبور با تکرار آن مطابقت ندارد' })
+
+     if (newPassword.length < 8)
+      return res.status(400).json({ message: "رمز عبور باید حداقل ۸ کاراکتر باشد" })
 
     const payload = verifyTokenFromCookie(req)
     if (!payload) return res.status(401).json({ message: 'توکن نامعتبر یا منقضی شده' })
