@@ -56,15 +56,15 @@ function clearResetCookie(res) {
 exports.sendVerifyCode = async (req, res) => {
   try {
     const { mobile } = req.body
-    if (!mobile) return res.status(400).json({ message: 'شماره موبایل لازم است' })
+    if (!mobile) return res.status(400).json({ message: 'Mobile number is required' })
 
     const user = await User.findOne({ mobile })
-    if (!user) return res.status(404).json({ message: 'کاربر پیدا نشد' })
+    if (!user) return res.status(404).json({ message: 'User not found' })
     
     //Resend Code
     const lastReset = await ResetPassword.findOne({ userId: user._id }).sort({ createdAt: -1 })
     if (lastReset && (Date.now() - lastReset.createdAt.getTime()) < 2 * 60 * 1000) {
-      return res.status(400).json({ message: 'لطفاً قبل از درخواست مجدد، ۲ دقیقه صبر کنید' })
+      return res.status(400).json({ message: 'Please wait 2 minutes before requesting again.' })
     }
    
     //Clean Pervius Code
@@ -87,22 +87,22 @@ exports.sendVerifyCode = async (req, res) => {
     const token = signResetToken(user._id, jti, ttlMs)
     setResetCookie(res, token, ttlMs)
 
-    console.log(`🔐 Reset code for ${mobile}: ${code}`)
+    console.log(`Recovery code for ${mobile}: ${code}`)
 
-    res.json({ message: 'کد بازیابی ارسال شد' })
+    res.json({ message: 'Recovery code sent' })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ message: 'خطای سرور' })
+    res.status(500).json({ message: 'Server error' })
   }
 }
 
 exports.checkVerifyCode = async (req, res) => {
   try {
     const { resetCode } = req.body
-    if (!resetCode) return res.status(400).json({ message: 'کد لازم است' })
+    if (!resetCode) return res.status(400).json({ message: 'Code is required' })
 
     const payload = verifyTokenFromCookie(req)
-    if (!payload) return res.status(401).json({ message: 'توکن نامعتبر یا منقضی شده' })
+    if (!payload) return res.status(401).json({ message: 'Invalid or expired token' })
 
     const { sub: userId, jti } = payload
     const resetDoc = await ResetPassword.findOne({
@@ -112,33 +112,33 @@ exports.checkVerifyCode = async (req, res) => {
     })
 
     if (!resetDoc) {
-      return res.status(400).json({ message: 'کد نامعتبر یا منقضی شده' })
+      return res.status(400).json({ message: 'Invalid or expired code' })
     }
 
     if (resetDoc.attempts >= 5) {
       await resetDoc.deleteOne() //Delete Record After an unsuccessful attempt
       clearResetCookie(res) //Delete Cookie After an unsuccessful attempt
-      return res.status(429).json({ message: 'تعداد تلاش‌ها بیش از حد مجاز است. لطفاً دوباره درخواست کد دهید' })
+      return res.status(429).json({ message: 'The number of attempts has exceeded the limit. Please request the code again.' })
     }
     const isValidCode = resetDoc.resetCodeHash === hashCode(resetCode)
     if (!isValidCode) {
       resetDoc.attempts += 1
       await resetDoc.save()
-      return res.status(400).json({ message: 'کد نامعتبر است' })
+      return res.status(400).json({ message: 'The code is invalid' })
     }
 
     if (resetDoc.isVerify) {
-      return res.json({ message: 'کد قبلاً تایید شده است' })
+      return res.json({ message: 'The code has already been verified.' })
     }
 
     resetDoc.isVerify = true
     resetDoc.attempts = 0 //Reset attempts next success verify
     await resetDoc.save()
 
-    res.json({ message: 'کد تایید شد' })
+    res.json({ message: 'The code is confirmed' })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ message: 'خطای سرور' })
+    res.status(500).json({ message: 'Server error' })
   }
 }
 
@@ -146,16 +146,16 @@ exports.resetPassword = async (req, res) => {
   try {
     const { newPassword, confirmPassword } = req.body
     if (!newPassword || !confirmPassword)
-      return res.status(400).json({ message: 'رمز جدید و تکرار لازم است' })
+      return res.status(400).json({ message: 'New password and repeat required' })
 
     if (newPassword !== confirmPassword)
-      return res.status(400).json({ message: 'رمز عبور با تکرار آن مطابقت ندارد' })
+      return res.status(400).json({ message: 'The password does not match its repetition.' })
 
      if (newPassword.length < 8)
-      return res.status(400).json({ message: "رمز عبور باید حداقل ۸ کاراکتر باشد" })
+      return res.status(400).json({ message: "Password must be at least 8 characters long." })
 
     const payload = verifyTokenFromCookie(req)
-    if (!payload) return res.status(401).json({ message: 'توکن نامعتبر یا منقضی شده' })
+    if (!payload) return res.status(401).json({ message: 'Invalid or expired token' })
 
     const { sub: userId, jti } = payload
 
@@ -166,11 +166,11 @@ exports.resetPassword = async (req, res) => {
       expiresAt: { $gt: new Date() }
     })
     if (!resetDoc) {
-      return res.status(400).json({ message: 'امکان تغییر رمز وجود ندارد' })
+      return res.status(400).json({ message: 'It is not possible to change the password.' })
     }
 
     const user = await User.findById(userId)
-    if (!user) return res.status(404).json({ message: 'کاربر پیدا نشد' })
+    if (!user) return res.status(404).json({ message: 'User not found' })
 
     user.password = await bcrypt.hash(newPassword, 10)
     await user.save()
@@ -178,9 +178,9 @@ exports.resetPassword = async (req, res) => {
     await resetDoc.deleteOne()
     clearResetCookie(res)
 
-    res.json({ message: 'رمز عبور با موفقیت تغییر یافت' })
+    res.json({ message: 'Password changed successfully.' })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ message: 'خطای سرور' })
+    res.status(500).json({ message: 'Server error' })
   }
 }
