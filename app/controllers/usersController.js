@@ -49,7 +49,7 @@ const addUser = async (req, res, next) => {
     const { first_name, last_name, mobile, email, password } = req.body
 
     if (!first_name || !last_name || !mobile || !email || !password) {
-      return next(new AppError('All fields are required', 400));
+      return next(new AppError('All fields are required', 400))
     }
 
     const existingMobile = await UserModel.findOne({ mobile })
