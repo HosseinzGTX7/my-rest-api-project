@@ -119,12 +119,19 @@ const getUser = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
   try {
-    const { id } = req.body;
+    const { id, ...updateData } = req.body
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return next(new AppError('User Id Invalid', 400))
     }
+    const forbiddenFields = ['password', 'createdAt', 'updateAt']
+    const attemptedForbidden = forbiddenFields.filter(field => field in updateData)
 
-    const result = await UserModel.updateOne({ _id: id }, { ...req.body })
+    if (attemptedForbidden.length > 0) {
+      return next(new AppError(`You are not allowed to update: ${attemptedForbidden.join(', ')}`, 403))
+    } //not pass update
+
+    const result = await UserModel.updateOne({ _id: id }, updateData)
+
     if (result.matchedCount === 0) {
       return next(new AppError('User Not Found', 404))
     }
