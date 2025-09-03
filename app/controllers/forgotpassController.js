@@ -151,13 +151,13 @@ exports.resetPassword = async (req, res, next) => {
       return next (new AppError('New password and repeat required', 400))
 
     if (newPassword !== confirmPassword)
-      return next (new AppError('The password does not match its repetition.', 400))
+      return next (new AppError('The password does not match its repetition.', 401))
 
      if (newPassword.length < 8)
-      return next (new AppError('Password must be at least 8 characters long.', 400))
+      return next (new AppError('Password must be at least 8 characters long.', 402))
 
     const payload = verifyTokenFromCookie(req)
-    if (!payload) return next (new AppError('Invalid or expired token', 400))
+    if (!payload) return next (new AppError('Invalid or expired token', 403))
 
     const { sub: userId, jti } = payload
 
@@ -168,11 +168,11 @@ exports.resetPassword = async (req, res, next) => {
       expiresAt: { $gt: new Date() }
     })
     if (!resetDoc) {
-      return next (new AppError('It is not possible to change the password.', 400))
+      return next (new AppError('It is not possible to change the password.', 404))
     }
 
     const user = await User.findById(userId)
-    if (!user) return next (new AppError('User not found', 400))
+    if (!user) return next (new AppError('User not found', 405))
 
     user.password = await bcrypt.hash(newPassword, 10)
     await user.save()
@@ -180,7 +180,7 @@ exports.resetPassword = async (req, res, next) => {
     await resetDoc.deleteOne()
     clearResetCookie(res)
 
-    res.json({ message: 'Password changed successfully.' })
+    res.status(200).json({Status:200, Message: 'Password changed successfully.'})
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: 'Server error' })

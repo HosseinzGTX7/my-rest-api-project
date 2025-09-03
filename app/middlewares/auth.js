@@ -10,7 +10,7 @@ function authorize (roles = []) {
         const token = TokenService.verify(tokenValue)
 
         if (!token) {
-            return next(new AppError('Your token is not valid', 401))
+            return next(new AppError('Your token is not valid', 402))
         }
         // بررسی نقش کاربر
         if (roles.length && !roles.includes(token.role)) {

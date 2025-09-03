@@ -3,13 +3,25 @@ const mongoose = require('mongoose')
 const { hashPassword } = require('../services/hashService')
 const UserModel = require('../models/UserModel')
 
-const usersList = async (req, res) => {
+const usersList = async (req, res, next) => {
     let projection = {}
+   if (!req.query.fields || req.query.fields.trim() === '') {
+  return next(new AppError('Fields query parameter is required and cannot be empty', 400))
+}
 
-    if (Object.prototype.hasOwnProperty.call(req.query, 'fields')) {
-    projection = req.query.fields.split(',').reduce((total, current) => {
-        return {[current]:1,...total}
-    },{})
+
+    const validFields = ['first_name', 'last_name', 'email', 'mobile', 'role', 'createdAt', 'updatedAt']
+  if (Object.prototype.hasOwnProperty.call(req.query, 'fields')) {
+  const requestedFields = req.query.fields.split(',').map(f => f.trim())
+  const invalidFields = requestedFields.filter(field => !validFields.includes(field))
+
+  if (invalidFields.length > 0) {
+    return next(new AppError(`Invalid fields requested: ${invalidFields.join(', ')}`, 404))
+  }
+
+  projection = requestedFields.reduce((total, current) => {
+    return { [current]: 1, ...total }
+  }, {})
 }
 
 //pagination
@@ -21,10 +33,7 @@ const usersCount = await UserModel.countDocuments()
 //ceil b samt bala rond mikone adad ro
 const totalPages = Math.ceil(usersCount / perPage)
     if (page > totalPages || page < 1) {
-      return res.status(404).json({
-      Success: false,
-      Message: 'This Page Does Not Exist'
-    })
+      return next(new AppError('This Page Does Not Exist', 405))
 }
 
 const users = await UserModel.find({}, projection).limit(perPage).skip(offset)
@@ -88,7 +97,7 @@ const addUser = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const { id } = req.body
-    if (!id) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return next(new AppError('Input Invalid', 400))
     }
 
@@ -104,30 +113,6 @@ const getUser = async (req, res, next) => {
     })
 
   } catch (error) {
-    next(error)
-  }
-}
-
-const removeUser = async (req, res, next) => {
-  try {
-    const { id } = req.body;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(new AppError('User Id Invalid', 400))
-    }
-
-    const result = await UserModel.deleteOne({ _id: id })
-    if (result.deletedCount === 0) {
-      return next(new AppError('User Not Found', 404))
-    }
-
-    return res.status(200).json({
-      Success: true,
-      Message: 'User Successfully Deleted',
-      Status: 200
-    })
-
-  } catch (error) {
-    console.error('Error in removeUser:', error.message)
     next(error)
   }
 }
@@ -160,6 +145,30 @@ const updateUser = async (req, res, next) => {
   }
 }
 
+const removeUser = async (req, res, next) => {
+  try {
+    const { id } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return next(new AppError('User Id Invalid', 400))
+    }
+
+    const result = await UserModel.deleteOne({ _id: id })
+    if (result.deletedCount === 0) {
+      return next(new AppError('User Not Found', 404))
+    }
+
+    return res.status(200).json({
+      Success: true,
+      Message: 'User Successfully Deleted',
+      Status: 200
+    })
+
+  } catch (error) {
+    console.error('Error in removeUser:', error.message)
+    next(error)
+  }
+}
+
 const hasNextPage = (page, totalPages) => {
     return page < totalPages
 }
@@ -171,6 +180,6 @@ module.exports = {
     usersList,
     addUser,
     getUser,
-    removeUser,
-    updateUser
+    updateUser,
+    removeUser
 }
