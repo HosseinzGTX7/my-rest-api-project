@@ -120,37 +120,64 @@ const getUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { id, ...updateData } = req.body
+
+    // بررسی صحت id
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return next(new AppError('User Id Invalid', 400))
     }
-    const forbiddenFields = ['password', 'createdAt', 'updateAt']
+
+    // جلوگیری از آپدیت فیلدهای ممنوع
+    const forbiddenFields = ['password', 'createdAt', 'updateAt', 'wallet']
     const attemptedForbidden = forbiddenFields.filter(field => field in updateData)
-
     if (attemptedForbidden.length > 0) {
-      return next(new AppError(`You are not allowed to update: ${attemptedForbidden.join(', ')}`, 403))
-    } //not pass update
-
-    const result = await UserModel.updateOne({ _id: id }, updateData)
-
-    if (result.matchedCount === 0) {
-      return next(new AppError('User Not Found', 404))
+      return next(new AppError(`You are not allowed to update: ${attemptedForbidden.join(', ')}`, 400))
     }
 
-    if (result.modifiedCount === 0) {
-      return next(new AppError('Same Information, No Change', 409))
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === '' || updateData[key] === null || updateData[key] === undefined) {
+        delete updateData[key]
+      }
+    })
+
+    if (Object.keys(updateData).length === 0) {
+      return next(new AppError('No valid fields to update', 401))
     }
+
+    // پیدا کردن کاربر
+    const user = await UserModel.findById(id)
+    if (!user) {
+      return next(new AppError('User Not Found', 402))
+    }
+
+    // اعمال تغییرات فقط در فیلدهای واقعی تغییر کرده
+    let changed = false
+    Object.keys(updateData).forEach(key => {
+      const newVal = updateData[key]
+      const oldVal = user[key]
+      if ((typeof newVal === 'string' && newVal.trim() !== (oldVal || '').trim()) ||
+          (typeof newVal !== 'string' && String(newVal) !== String(oldVal))) {
+        user[key] = newVal
+        changed = true
+      }
+    })
+
+    if (!changed) {
+      return next(new AppError('Same Information, No Change', 403))
+    }
+
+    await user.save()
 
     res.status(200).json({
       Success: true,
       Message: 'User Successfully Updated',
       Status: 200
     })
-
   } catch (error) {
-    console.error('Error in updateUser:', error.message)
+    console.error('Error in updateUser:', error)
     next(error)
   }
 }
+
 
 const removeUser = async (req, res, next) => {
   try {

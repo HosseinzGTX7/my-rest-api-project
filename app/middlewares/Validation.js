@@ -1,7 +1,7 @@
 const Joi = require('joi')
 const AppError = require('../utils/appError')
 
-const userSchema = Joi.object({
+const createUserSchema = Joi.object({
   first_name: Joi.string().min(2).required(),
   last_name: Joi.string().min(2).required(),
   mobile: Joi.string().pattern(/^09\d{9}$/).required(),
@@ -9,12 +9,29 @@ const userSchema = Joi.object({
   password: Joi.string().min(8).required()
 })
 
-function validateUser(req, res, next) {
-  const { error } = userSchema.validate(req.body, { abortEarly: true })
+const updateUserSchema = Joi.object({
+  first_name: Joi.string().min(2),
+  last_name: Joi.string().min(2),
+  mobile: Joi.string().pattern(/^09\d{9}$/),
+  email: Joi.string().email(),
+}).min(1)
+
+function validateUpdateUser(req, res, next) {
+  const { error } = updateUserSchema.validate(req.body, { abortEarly: true })
   if (error) {
     const detail = error.details[0]
-    let message = 'Invalid input'
-    let statusCode = 400
+    return next(new AppError(detail.message || 'Invalid input', 400))
+  }
+  next()
+}
+
+function validateUser(schema) {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body, { abortEarly: true })
+    if (error) {
+      const detail = error.details[0]
+      let message = 'Invalid input'
+      let statusCode = 400
 
     switch (detail.context.key) {
       case 'first_name':
@@ -42,6 +59,10 @@ function validateUser(req, res, next) {
     return next(new AppError(message, statusCode))
   }
   next()
+ }
 }
 
-module.exports = validateUser
+module.exports = {
+  validateCreateUser: validateUser(createUserSchema),
+  validateUpdateUser: validateUser(updateUserSchema)
+}
