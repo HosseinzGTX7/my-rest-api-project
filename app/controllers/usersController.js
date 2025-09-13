@@ -121,16 +121,14 @@ const updateUser = async (req, res, next) => {
   try {
     const { id, ...updateData } = req.body
 
-    // بررسی صحت id
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return next(new AppError('User Id Invalid', 400))
     }
 
-    // جلوگیری از آپدیت فیلدهای ممنوع
     const forbiddenFields = ['password', 'createdAt', 'updateAt', 'wallet']
     const attemptedForbidden = forbiddenFields.filter(field => field in updateData)
     if (attemptedForbidden.length > 0) {
-      return next(new AppError(`You are not allowed to update: ${attemptedForbidden.join(', ')}`, 400))
+      return next(new AppError(`You are not allowed to update: ${attemptedForbidden.join(', ')}`, 406))
     }
 
     Object.keys(updateData).forEach(key => {
@@ -140,16 +138,14 @@ const updateUser = async (req, res, next) => {
     })
 
     if (Object.keys(updateData).length === 0) {
-      return next(new AppError('No valid fields to update', 401))
+      return next(new AppError('No valid fields to update', 407))
     }
 
-    // پیدا کردن کاربر
     const user = await UserModel.findById(id)
     if (!user) {
-      return next(new AppError('User Not Found', 402))
+      return next(new AppError('User Not Found', 408))
     }
 
-    // اعمال تغییرات فقط در فیلدهای واقعی تغییر کرده
     let changed = false
     Object.keys(updateData).forEach(key => {
       const newVal = updateData[key]
@@ -162,7 +158,7 @@ const updateUser = async (req, res, next) => {
     })
 
     if (!changed) {
-      return next(new AppError('Same Information, No Change', 403))
+      return next(new AppError('Same Information, No Change', 409))
     }
 
     await user.save()

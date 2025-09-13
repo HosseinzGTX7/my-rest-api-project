@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const usersController = require('../controllers/usersController')
 const auth = require('../middlewares/auth')
-const { validateUpdateUser } = require('../middlewares/Validation')
+const {validateUpdateUser} = require('../middlewares/Validation')
 
 //For Send form-data
 const multer = require('multer')

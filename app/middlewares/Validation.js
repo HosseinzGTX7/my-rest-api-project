@@ -1,6 +1,7 @@
 const Joi = require('joi')
 const AppError = require('../utils/appError')
 
+// اسکیمای ثبت‌نام
 const createUserSchema = Joi.object({
   first_name: Joi.string().min(2).required(),
   last_name: Joi.string().min(2).required(),
@@ -9,37 +10,30 @@ const createUserSchema = Joi.object({
   password: Joi.string().min(8).required()
 })
 
+// اسکیمای آپدیت
 const updateUserSchema = Joi.object({
   first_name: Joi.string().min(2),
   last_name: Joi.string().min(2),
   mobile: Joi.string().pattern(/^09\d{9}$/),
   email: Joi.string().email(),
+  role: Joi.string().valid('admin', 'user')
 }).min(1)
 
-function validateUpdateUser(req, res, next) {
-  const { error } = updateUserSchema.validate(req.body, { abortEarly: true })
+// Middleware اختصاصی برای create
+function validateCreateUser(req, res, next) {
+  const { error } = createUserSchema.validate(req.body, { abortEarly: true })
   if (error) {
     const detail = error.details[0]
-    return next(new AppError(detail.message || 'Invalid input', 400))
-  }
-  next()
-}
-
-function validateUser(schema) {
-  return (req, res, next) => {
-    const { error } = schema.validate(req.body, { abortEarly: true })
-    if (error) {
-      const detail = error.details[0]
-      let message = 'Invalid input'
-      let statusCode = 400
+    let message = 'Invalid input'
+    let statusCode = 400
 
     switch (detail.context.key) {
       case 'first_name':
-        message = detail.type === 'string.min' ? 'first name too short (min 2 char)' : 'First name is required'
+        message = detail.type === 'string.min' ? 'First name too short (min 2 char)' : 'First name is required'
         statusCode = detail.type === 'string.min' ? 401 : 400
         break
       case 'last_name':
-        message = detail.type === 'string.min' ? 'last name too short (min 2 char)' : 'Last name is required'
+        message = detail.type === 'string.min' ? 'Last name too short (min 2 char)' : 'Last name is required'
         statusCode = detail.type === 'string.min' ? 401 : 400
         break
       case 'mobile':
@@ -59,10 +53,47 @@ function validateUser(schema) {
     return next(new AppError(message, statusCode))
   }
   next()
- }
+}
+
+function validateUpdateUser(req, res, next) {
+  const { error } = updateUserSchema.validate(req.body, { abortEarly: true })
+  if (error) {
+    const detail = error.details[0]
+    let message
+    let statusCode
+
+    switch (detail.context.key) {
+      case 'first_name':
+        message = detail.type === 'string.min' ? 'First name too short (min 2 char)' : 'First name invalid'
+        statusCode = 401
+        break
+      case 'last_name':
+        message = detail.type === 'string.min' ? 'Last name too short (min 2 char)' : 'Last name invalid'
+        statusCode = 401
+        break
+      case 'mobile':
+        message = detail.type === 'string.pattern.base' ? 'Phone invalid, must start with 09 and 11 digits' : 'Phone invalid'
+        statusCode = 402
+        break
+      case 'email':
+        message = detail.type === 'string.email' ? 'Email format incorrect' : 'Email invalid'
+        statusCode = 404
+        break
+        case 'role':
+        message = 'Role must be either admin or user'
+        statusCode = 405
+        break
+
+        default:
+        return next()
+    }
+
+    return next(new AppError(message, statusCode))
+  }
+  next()
 }
 
 module.exports = {
-  validateCreateUser: validateUser(createUserSchema),
-  validateUpdateUser: validateUser(updateUserSchema)
+  validateCreateUser,
+  validateUpdateUser
 }
