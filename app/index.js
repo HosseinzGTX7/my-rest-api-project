@@ -1,23 +1,15 @@
 const express = require('express')
 const app = express()
 const cookieParser = require('cookie-parser')
+const notFound = require('./middlewares/notFound')
+const errorHandler = require('./middlewares/errorHandler')
 
 require('./boot')
 require('./middlewares')(app)
-
-app.use(cookieParser())
-
 require('./routes')(app)
 
-app.use((req, res) => {
-  res.status(404).json({
-    Success: 'false',
-    Status: '404',
-    Message: `Route ${req.originalUrl} not found on this server!`
-  })
-})
-
-const errorHandler = require('./middlewares/errorHandler')
+app.use(cookieParser())
+app.use(notFound)
 app.use(errorHandler)
 
 module.exports = (port) => {

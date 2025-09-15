@@ -184,7 +184,7 @@ const removeUser = async (req, res, next) => {
 
     const result = await UserModel.deleteOne({ _id: id })
     if (result.deletedCount === 0) {
-      return next(new AppError('User Not Found', 404))
+      return next(new AppError('User Not Found', 401))
     }
 
     return res.status(200).json({
